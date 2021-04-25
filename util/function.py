@@ -1,17 +1,12 @@
 #Author: Tao ZHANG
-
 #Date: 2021/4/20
-
 #Introduction: 定义了高光谱数据相关计算的一些类，主要包括了基础数据类，红边参数计算类，植被指数计算类 
-
 #--------------------------------------------------------------------------------------------------
-
 import os 
 import numpy as np
 from scipy.integrate import simps
 from scipy.stats import pearsonr
 from sympy import sympify,Symbol
-
 
 class base:
     jls_extract_var = """
@@ -48,6 +43,14 @@ class base:
                         装饰器使用staticmethod()或classmethod()内置方法变为静态函数，可以直接使用类名.方法名()调用
                         https://stackoverflow.com/questions/3421337/accessing-a-decorator-in-a-parent-class-from-the-child-in-python
                         (StackOverflow yyds)
+        栗子：
+            >> import numpy as np
+            >> from scipy.stats import pearsonr
+            ##data_band;lai;index existence!!!
+            >> w = base(data_band,lai)
+            >> w.set_index(index)
+            >> order = w.select_data_2(["ck1","2016"], [3,5])
+            >> w.data_band[order,:] ## select all data like "2016-CK1""
         """
     def __init__(self,data_band,lai,index=None):
         self.data_band = data_band
@@ -119,6 +122,14 @@ class red_side(base):
                     IG_data: 类型为array，维度为2，为三边参数，逐列依次为 红边位置lamda0，红谷宽度sigma
                     R:       类型为array，维度为1，是各个三边参数与生理指数的相关性
                     p:       类型为array，维度为1，相关性显著检验
+    栗子：
+        >> import numpy as np
+        >> from scipy.integrate import simps
+        >> from scipy.stats import pearsonr
+        ##data_band;lai;index existence!!!
+        >> w = red_side(data_band,lai,index)
+        >> data1,R1,P1 = w.side()
+        >> data2,R2,P2 = w.IG_red()
     """
 
     def __init__(self,data_band,lai,lamda1=680,lamda2=760,index=None):
@@ -165,6 +176,60 @@ class red_side(base):
         return IG_data
 
 class vegetation_index(base):
+    """
+    说明：通过输入计算公式（变量定义具体规定）计算对应的植被指数，及与相应生理指数的相关性
+    属性：
+        data_band,lai,index与base相同
+        veget_index_func:  类型为list，为所计算的植被指数对应的计算公式，具体命名格式为：
+                                使用“R...”格式，...内容有以下5种形式
+                                1)最常见的，直接是某个波长对应的反射率其参数为R+波长，如R810、R755等；
+                                2)天依蓝波段，此时参数名称是固定的即Rblue，其返回蓝光范围（默认为435-450nm）反射率平均值，
+                                    如果要修改范围在类实例化时将新范围传入即可，如vegetation_index(data_band,lai,blue=[1,2])，
+                                    就是将默认的蓝光范围修改为1~2内，下同；
+                                3)宝强绿波段，名称也为固定Rgreen（默认范围为492-577nm）可以传入green修改；
+                                4)苏联红波段，名称固定Rred（默认范围为622-760nm）可以传入red修改；
+                                5)近红外短波，名称固定Rnir（默认范围为780-1100nm）可以传入bir修改
+                            使用以上格式的参数定义一系列计算植被指数的数学公式从而组成一个列表，如["R400+R600+1","R500-1"]
+        names:              类型为list，为各个植被指数具体的名称，可以使用内置函数set_names进行设定，非必须
+    内置函数：
+        >set_names:
+                    设定所计算植被指数的名称
+                input:
+                    names: 类型为list，为各个植被指数的名称
+                output:
+                    None
+        >_find_symbol:
+                    借助sympy库寻找一个植被指数计算公式中的未知变量，如计算公式为"2*R400+Rgreen-1"其变量为['R400','Rgreen']
+                input:
+                    None
+                output:
+                    sym_funcs: 类型为list，借助sympy将计算公式进行符号化，成为可运算的对象
+                    forts:  类型为list，其中每个公式对应的变量均为一个dict，每个变量对应的值默认为1，如公式"2*R400+Rgreen-1"
+                        返回的变量形式为{'R400':1,'Rgreen':1}，之后在运算时可修改对应的值进行运算
+        >_find_data:
+                    传入一个变量名称和光谱数据，根据变量格式计算其对应的值
+                input：
+                    string: 类型为str，为一个变量的名称
+                    refl:  类型为array，维度为1，为一条光谱数据（无法使用矩阵计算只能forforfor了）
+                output:
+                    data: 类型为float，传入变量对应的数值
+        >vegetation:
+                    根据数据和公式计算相应的植被指数，并使用装饰器base.Decoration_corr计算结果与生理指数的相关性
+                input:
+                    None
+                output:
+                    vegetation_datas: 类型为array，维度为2，各个植被指数的计算结果
+                    R:                类型为array，维度为1，各个植被指数与生理指数的相关性
+                    P:                类型为array，维度为1，显著检验结果
+    栗子：
+        >> import numpy as np
+        >> from scipy.stats import pearsonr
+        >> from sympy import sympify,Symbol
+        ##data_band;lai;index existence!!!
+        >> funcs = ['R400+R500','Rred-R500+1']
+        >> w =  vegetation_index(data_band,lai,funcs)
+        >> data,R,P = w.vegetation()
+    """
     extent = {'blue':[435,450],'green':[492,577],'red':[622,760],'nir':[780,1100]}
     names = []
     def __init__(self,data_band,lai,veget_index_func,index=None,**kwards):
@@ -192,16 +257,16 @@ class vegetation_index(base):
         return sym_funcs,forts
     
     def _find_data(self,string,refl):
-        if strsym[1:] == 'blue':
+        if string[1:] == 'blue':
             data = np.mean(refl[vegetation_index.extent['blue'][0]-350:vegetation_index.extent['blue'][1]-350])
-        elif strsym[1:] == 'green':
+        elif string[1:] == 'green':
             data = np.mean(refl[vegetation_index.extent['green'][0]-350:vegetation_index.extent['green'][1]-350])
-        elif strsym[1:] == 'red':
+        elif string[1:] == 'red':
             data = np.mean(refl[vegetation_index.extent['red'][0]-350:vegetation_index.extent['red'][1]-350])
-        elif strsym[1:] == 'nir':
+        elif string[1:] == 'nir':
             data = np.mean(refl[vegetation_index.extent['nir'][0]-350:vegetation_index.extent['nir'][1]-350])
         else:
-            data = refl[int(strsym[1:])-350]
+            data = refl[int(string[1:])-350]
         return data
 
     @base.Decoration_corr
@@ -211,10 +276,11 @@ class vegetation_index(base):
             vegetation_data = []
             for sym_func,fort in zip(self.sym_funcs,self.forts):
                 for variable in fort.keys():
-                    fort[variable] = self._find_data(variable,self.data_band[i])
+                    #print(type(variable))
+                    fort[variable] = self._find_data(str(variable),self.data_band[i])
                 vegetation_data.append(sym_func.subs(fort).evalf())
             vegetation_datas.append(vegetation_data)
-        vegetation_datas = np.array(vegetation_datas)
+        vegetation_datas = np.array(vegetation_datas,dtype=np.float64)
         return vegetation_datas
 
 
