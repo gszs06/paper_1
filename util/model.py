@@ -98,12 +98,29 @@ class model_base:
         >> a = model_base(X,y)
         >> evaluation_data,model_parameter = a.fit(funcstr='line') 
     """
-    def __init__(self,X,y,times=50):
+    def __init__(self,X,y,times=50,index=None):
         if X.ndim == 1:
             self.X = X.reshape((-1,1))
         self.y = y
         self.times = times
+        self.index = index
         self.lens = X.shape[0]
+    def set_index(self,index):
+        self.index = index
+
+    def select_data_2(self,strlist,location):
+        order = []
+        for i in range(self.index.shape[0]):
+            j = 0
+            for loc in location:
+                if self.index[i,int(loc)] in strlist:
+                    j = j + 1
+            if j == len(location):
+                order.append(i)
+        order = np.array(order,dtype=np.int)
+        self.data_band = self.data_band[order,:]
+        self.lai = self.lai[order,:]
+        return order        
 
     def random_sort(self):
         random_index = [i for i in range(self.X.shape[0])]

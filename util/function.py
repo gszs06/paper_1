@@ -70,6 +70,8 @@ class base:
             if j == len(location):
                 order.append(i)
         order = np.array(order,dtype=np.int)
+        self.data_band = self.data_band[order,:]
+        self.lai = self.lai[order]
         return order
 
     def Decoration_corr(func):
@@ -133,7 +135,7 @@ class red_side(base):
     """
 
     def __init__(self,data_band,lai,lamda1=680,lamda2=760,index=None):
-        super().__init__(data_band,lai,index=None)
+        super().__init__(data_band,lai,index)
         self.lamda1 = int(lamda1)
         self.lamda2 = int(lamda2)
         if self.data_band.ndim == 1:
@@ -233,7 +235,7 @@ class vegetation_index(base):
     extent = {'blue':[435,450],'green':[492,577],'red':[622,760],'nir':[780,1100]}
     names = []
     def __init__(self,data_band,lai,veget_index_func,index=None,**kwards):
-        super().__init__(data_band, lai,index=None)
+        super().__init__(data_band, lai,index)
         if self.data_band.ndim == 1:
             self.data_band = self.data_band.reshape((1,-1))
         else:

@@ -1,5 +1,7 @@
 import numpy as np
 from util import function
+from util import model
+from util import function_plot
 
 from scipy.integrate import simps
 from scipy.stats import pearsonr
@@ -9,227 +11,149 @@ lai = np.load("data/lai.npy")
 
 
 
-import matplotlib.pyplot as plt
-import pandas as pd
-
-data = [[data_band[1,:],data_band[2,:],data_band[3,:]],
-        [data_band[4,:],data_band[5,:],data_band[6,:]],
-        [data_band[7,:],data_band[8,:],data_band[9,:]]]
-
-class picture_base:
-    def __init__(self):
-        self.y_ticklabels = [0,0.1,0.2,0.3,0.4,0.5,0.6]
-        self.x_ticklabels = [350,600,850,1100,1350]
-        self.axis_fontsize = 14
-        self.axis_color = 'black'
-
-        self.line_color = ['blue','green','red']
-        self.line_label = ['T1','T2','T3']
-        self.ylabel = '反射率 Reflectance'
-        self.xlabel = '波长 Wavelength(nm)'
-
-        self.figsize = [15,4]
-        self.dpi = 200
-
-        self.legend_size = 13
-        self.legend_loc = 2
-
-        self.txt_fontsize = 20
-        self.txt_locs = [[0,0.3],[0,0.3],[0,0.3]]
-        self.txts = ['(a)','(b)','(c)']
-
-class picture(picture_base):
-
-    def __init__(self,data,picture_number_col=3):
-        super().__init__()
-        self.data = data
-        self.picture_number_col = picture_number_col
-        self.picture_number = len(data)
-        self.picture_number_row = int(np.ceil(self.picture_number / self.picture_number_col))
-
-
-    def plot_redefine(self,save_name=None,*args,**kwargs):
-        plt.rcParams['font.sans-serif'] = ['SimHei']
-        plt.rcParams['axes.unicode_minus'] = False
-        fig = plt.figure(figsize=self.figsize,dpi=self.dpi)
-        for i,txt_loc,txt in zip(range(1,self.picture_number+1),self.txt_locs,self.txts):
-            ax = fig.add_subplot(self.picture_number_row,self.picture_number_col,i)
-            ax = self.setting(ax,self.data[i-1],i)
-            ax.text(*txt_loc,txt,fontsize=self.txt_fontsize)
-        plt.tight_layout()
-        if save_name:
-            plt.savefig('output/'+save_name+'.png',dpi=200)
-            figure_data = self.save_data()
-            figure_data.to_excel('output/'+save_name+'_figdata.xlsx')
-        plt.show()
-
-    def setting(self,ax,data_one,i,*args,**kwargs):
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['left'].set_color('black')
-        ax.spines['bottom'].set_color('black')
-        for data,color,label in zip(data_one,self.line_color,self.line_label):
-            ax.plot(data,color=color,label=label,*args,**kwargs)
-        ax.set_yticks(self.y_ticklabels)
-        ax.set_yticklabels(self.y_ticklabels,fontsize=self.axis_fontsize,color=self.axis_color)
-        ax.set_xticks([int(i-350) for i in self.x_ticklabels])
-        ax.set_xticklabels(self.x_ticklabels,fontsize=self.axis_fontsize,color=self.axis_color)
-        if (i-1) % self.picture_number_col == 0:
-            ax.set_ylabel(self.ylabel,fontsize=self.axis_fontsize,color=self.axis_color)
-        ax.set_xlabel(self.xlabel,fontsize=self.axis_fontsize,color=self.axis_color)
-        ax.legend(edgecolor='w',fontsize=self.legend_size,loc=self.legend_loc)
-        return ax
-
-    def save_data(self):
-        data_excel = pd.DataFrame(columns=list(range(350,len(data[0]))))
-        for i in range(len(self.data)):
-            for j in range(len(self.data[0])):
-                data_name = 'figure_' + str(i+1) + '_line_' + str(j+1)
-                data_row = pd.Series(self.data[i][j],name=data_name)
-                data_excel = data_excel.append(data_row)
-        data_excel.columns = np.arange(350,350+len(self.data[0][0]))
-        return data_excel
 
 
 
+### fig1
+index_list = [[['14','2017','ck1','ck2','ck3'],['14','2017','p1','p2','p3'],['14','2017','m1','m2','m3']],
+                [['21','2017','ck1','ck2','ck3'],['21','2017','p1','p2','p3'],['21','2017','m1','m2','m3']],
+                [['28','2017','ck1','ck2','ck3'],['28','2017','p1','p2','p3'],['28','2017','m1','m2','m3']]]
+plot_data = []
+for subfig in index_list:
+    subfig_data = []
+    for line in subfig:
+        line_data = function.red_side(data_band=data_band,lai=lai,index=index)
+        line_data.select_data_2(line,[3,4,2,2,2])
+        subfig_data.append(line_data.data_band.mean(axis=0))
+    plot_data.append(subfig_data)
+
+fig1 = function_plot.picture_profile(plot_data)
+fig1.line_label = ['CK','T1','T2']
+fig1.line_color = ['black','black','black']
+fig1.ylabel = 'Reflectance'
+fig1.xlabel = 'Wavelength(nm)'
+fig1.line_style = ['-','--',':']
+fig1.plot_redefine(save_name='fig1')
+
+### fig2
+index_list = [[['14','2016','ck1','ck2','ck3'],['14','2016','p1','p2','p3'],['14','2016','m1','m2','m3']],
+                [['21','2016','ck1','ck2','ck3'],['21','2016','p1','p2','p3'],['21','2016','m1','m2','m3']],
+                [['28','2016','ck1','ck2','ck3'],['28','2016','p1','p2','p3'],['28','2016','m1','m2','m3']]]
+plot_data = []
+for subfig in index_list:
+    subfig_data = []
+    for line in subfig:
+        line_data = function.red_side(data_band=data_band,lai=lai,index=index)
+        line_data.select_data_2(line,[3,4,2,2,2])
+        subfig_data.append(line_data.data_band.mean(axis=0))
+    plot_data.append(subfig_data)
+
+fig1 = function_plot.picture_profile(plot_data)
+fig1.line_label = ['CK','T1','T2']
+fig1.line_color = ['black','black','black']
+fig1.ylabel = 'Reflectance'
+fig1.xlabel = 'Wavelength(nm)'
+fig1.line_style = ['-','--',':']
+fig1.plot_redefine(save_name='fig2')
+
+### fig3
+index_list = [[['14','2017','ck1','ck2','ck3'],['14','2017','p1','p2','p3'],['14','2017','m1','m2','m3']],
+                [['21','2017','ck1','ck2','ck3'],['21','2017','p1','p2','p3'],['21','2017','m1','m2','m3']],
+                [['28','2017','ck1','ck2','ck3'],['28','2017','p1','p2','p3'],['28','2017','m1','m2','m3']]]
+plot_data = []
+for subfig in index_list:
+    subfig_data = []
+    for line in subfig:
+        line_data = function.red_side(data_band=data_band,lai=lai,index=index)
+        line_data.select_data_2(line,[3,4,2,2,2])
+        data_der = line_data.derivative()
+        subfig_data.append(data_der.mean(axis=0))
+    plot_data.append(subfig_data)
+
+fig1 = function_plot.picture_profile(plot_data)
+fig1.line_label = ['CK','T1','T2']
+fig1.line_color = ['black','black','black']
+fig1.ylabel = 'First derivative reflectance\n(1$0^{-2}·nm^{-1}$)'
+fig1.xlabel = 'Wavelength(nm)'
+fig1.line_style = ['-','--',':']
+fig1.y_ticks = [0,0.002,0.004,0.006,0.008,0.01]
+fig1.y_ticklabels = [0,0.2,0.4,0.6,0.8,1]
+fig1.x_ticks = [350,370,390,410,430]
+fig1.x_ticklabels = [680,700,720,740,760]
+fig1.txt_locs = [[0,0.005],[0,0.005],[0,0.005]]
+fig1.plot_redefine(save_name='fig3')
+
+### fig4
+index_list = [[['14','2016','ck1','ck2','ck3'],['14','2016','p1','p2','p3'],['14','2016','m1','m2','m3']],
+                [['21','2016','ck1','ck2','ck3'],['21','2016','p1','p2','p3'],['21','2016','m1','m2','m3']],
+                [['28','2016','ck1','ck2','ck3'],['28','2016','p1','p2','p3'],['28','2016','m1','m2','m3']]]
+plot_data = []
+for subfig in index_list:
+    subfig_data = []
+    for line in subfig:
+        line_data = function.red_side(data_band=data_band,lai=lai,index=index)
+        line_data.select_data_2(line,[3,4,2,2,2])
+        data_der = line_data.derivative()
+        #有负值难看
+        data_der = np.where(data_der<0,0,data_der)
+        subfig_data.append(data_der.mean(axis=0))
+    plot_data.append(subfig_data)
+
+fig1 = function_plot.picture_profile(plot_data)
+fig1.line_label = ['CK','T1','T2']
+fig1.line_color = ['black','black','black']
+fig1.ylabel = 'First derivative reflectance\n(1$0^{-2}·nm^{-1}$)'
+fig1.xlabel = 'Wavelength(nm)'
+fig1.line_style = ['-','--',':']
+fig1.y_ticks = [0,0.002,0.004,0.006,0.008,0.01]
+fig1.y_ticklabels = [0,0.2,0.4,0.6,0.8,1]
+fig1.x_ticks = [350,370,390,410,430]
+fig1.x_ticklabels = [680,700,720,740,760]
+fig1.txt_locs = [[0,0.005],[0,0.005],[0,0.005]]
+fig1.plot_redefine(save_name='fig4')
 
 
 
+### fig5
+def Dlambda(x):
+    return 146.0 * x + 4.17
+def area(x):
+    return 3.71 * x + 3.98
+def R800(x):
+    return 3.39 * x + 3.93
+def DVI(x):
+    return -6.70 * x + 4.41
+def NDVI(x):
+    return 3.33 * x + 7.97
+def MSAVI(x):
+    return 3.28 * x + 5.60
+pre_models = [Dlambda,area,R800,DVI,NDVI,MSAVI]
+vis  = ['R800','R737-R816','R692-R637/R692+R637','0.5*(2*Rnir + 1)-((2*Rnir+1)**2-8*(Rnir-Rred))**0.5',
+        '3*((R710-R680)-0.2*(R700-R560)/(R710/R680))']
+vis_names = ['R800','DVI',"NDVI","MSAVI","TCARI"]
+corr_vi = function.vegetation_index(data_band,lai,vis).vegetation()
+data_lamda = function.red_side(data_band,lai)
+corr_side = data_lamda.side()
+corr_IG = data_lamda.IG_red()
 
 
 
+##使用2016年数据进行验证
+data_base = function.base(data_band,lai,index)
+order_2016 = data_base.select_data_2(['2016'],[4])
+
+X = np.zeros((corr_vi[0].shape[0],6))
+X[:,0:2] = corr_side[0][:,1:3]
+X[:,2:] = corr_vi[0][:,0:4]
+
+X = X[order_2016,:]
+lai = lai[order_2016]
 
 
+data_scatter = []
+for i in range(6):
+    data_scatter.append([pre_models[i](X[:,i]),lai])
 
+fig5 = function_plot.picture_scatter(data_scatter)
+fig5.scatter_redefine(save_name='fig5')
 
-
-
-
-
-
-
-
-def dec(func):
-    def a(*args,**kwargs):
-        value = func(*args,**kwargs)
-        return value + 1
-    return a
-
-@dec
-def add(m,n):
-    w = m+n
-    return w
-
-import numpy as np
-
-class a:
-    b = 1
-    def __init__(self,a1):
-        self.a1 = a1
-        print(a.b)
-
-
-class b(a):
-    def __init__(self,a1,b1):
-        super().__init__(a1)
-        self.b1 = b1
-    def add(self):
-        print(self.a1 + self.b1)
-index = np.load("F:/光谱数据/index_1.npy")
-
-class Decor(object):
-    def __init__(self,func):
-        self.func = func
-    def __call__(self,*args):
-            w = self.func(*args)
-            return w+1
-
-class De(object):
-    def __init__(self,a):
-        self.a = a
-    @Decor
-    def add(self):
-        return self.a
-
-@Decor
-def sum(a,b):
-    return a+b
-
-
-class c:
-    def __init__(self,w):
-        self.w = w
-    def dec1(func):
-        def fun(self,*args,**kwargs):
-            value = func(self,*args,**kwargs)
-            return value+self.w
-        return fun
-    def suma(self,a,b):
-        return a+b
-    @dec1
-    def suma1(self,a,b):
-        return a+b
-class d(c):
-    def __init__(self,w):
-        super().__init__(w)
-    
-
-
-def dec(func):
-    def a(self,*args,**kwargs):
-        value = func(self,*args,**kwargs)
-        return value + self.w
-    return a
-
-
-class base:
- 
-    def __init__(self,data_band,lai,lamda1=680,lamda2=760,index=None):
-        self.lamda1 = int(lamda1)
-        self.lamda2 = int(lamda2)
-        self.data_band = data_band
-        self.index = index
-        self.lai = lai
-    
-    def set_index(self,index):
-        self.index = index
-
-    def select_data_2(self,strlist,location):
-        order = []
-        for i in range(self.index.shape[0]):
-            j = 0
-            for loc in location:
-                if self.index[i,int(loc)] in strlist:
-                    j = j + 1
-            if j == len(location):
-                order.append(i)
-        order = np.array(order,dtype=np.int)
-        return order
-    def Decoration_corr(func):
-        def corr(self,*args,**kwargs):
-            value = func(self,*args,**kwargs)
-            R = np.zeros(value.shape[1])
-            p = R.copy()
-            for i in range(value.shape[1]):
-                R[i],p[i] = pearsonr(value[:,i],self.lai)
-            return R,p
-        return corr
-    @Decoration_corr
-    def IG_red(self):
-        Rs = np.mean(self.data_band[:,780-350:795-350],axis=1)
-        Rs = Rs.reshape((-1,1))
-        Ro = np.mean(self.data_band[:,670-350:675-350],axis=1)
-        Ro = Ro.reshape((-1,1))
-        Wave = np.arange(350,1350)
-        y = self.data_band[:,685-350:780-350]
-        x = Wave[685-350:780-350]
-        y = np.sqrt(-np.log((Rs - y) / (Rs - Ro)))
-        w = np.polyfit(x,y.T,1)
-        lamda0 = -w[1,:] / w[0,:]
-        sigma = 1.0 / np.sqrt(2*w[0,:])
-        IG_data = np.concatenate((lamda0.reshape((-1,1)),sigma.reshape((-1,1))),axis=1)
-        return IG_data    
-
-def func(**b):
-    for i in b:
-        print(i)
