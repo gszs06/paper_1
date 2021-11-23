@@ -151,7 +151,8 @@ class picture_profile(picture_base):
         ax.set_xticklabels(self.x_ticklabels,fontsize=self.axis_fontsize,color=self.axis_color)
         if (i-1) % self.picture_number_col == 0:
             ax.set_ylabel(self.ylabel,fontsize=self.axis_fontsize,color=self.axis_color)
-        ax.set_xlabel(self.xlabel,fontsize=self.axis_fontsize,color=self.axis_color)
+        if i in np.arange(1,self.picture_number+1)[-self.picture_number_col:]:
+            ax.set_xlabel(self.xlabel,fontsize=self.axis_fontsize,color=self.axis_color)
         ax.legend(edgecolor='w',fontsize=self.legend_size,loc=self.legend_loc)
         return ax
 
